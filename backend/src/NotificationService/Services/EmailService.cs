@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;

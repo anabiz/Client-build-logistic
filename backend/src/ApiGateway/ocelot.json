@@ -1,36 +1,48 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/v{version}/users/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/Users/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5001
+          "Host": "user-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/users/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
     },
     {
-      "DownstreamPathTemplate": "/api/v{version}/auth/{everything}",
+      "DownstreamPathTemplate": "/api/v{version}/Auth/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5001
+          "Host": "user-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/auth/{everything}",
       "UpstreamHttpMethod": [ "POST" ]
     },
     {
+      "DownstreamPathTemplate": "/api/v{version}/Audit/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "user-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/v{version}/audit/{everything}",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/v{version}/items/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5002
+          "Host": "item-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/items/{everything}",
@@ -41,8 +53,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5002
+          "Host": "item-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/batches/{everything}",
@@ -53,8 +65,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5002
+          "Host": "item-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/upload/{everything}",
@@ -65,8 +77,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5003
+          "Host": "delivery-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/deliveries/{everything}",
@@ -77,8 +89,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5003
+          "Host": "delivery-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/riders/{everything}",
@@ -89,8 +101,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5003
+          "Host": "delivery-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/hubs/{everything}",
@@ -101,8 +113,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5003
+          "Host": "delivery-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/location/{everything}",
@@ -113,8 +125,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5002
+          "Host": "item-service",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/api/v{version}/analytics/{everything}",

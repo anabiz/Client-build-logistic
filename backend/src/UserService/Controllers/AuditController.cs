@@ -8,7 +8,8 @@ using System.Threading.Tasks;
 namespace UserService.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class AuditController : ControllerBase
 {
     private readonly IUserAppService _userAppService;

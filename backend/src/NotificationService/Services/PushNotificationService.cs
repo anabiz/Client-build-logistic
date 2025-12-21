@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
 using Google.Apis.Auth.OAuth2;
@@ -15,18 +19,32 @@ public class FirebasePushNotificationService : IPushNotificationService
 
     public FirebasePushNotificationService(IConfiguration configuration)
     {
-        if (FirebaseApp.DefaultInstance == null)
+        var serviceAccountPath = configuration["Firebase:ServiceAccountPath"];
+        if (!string.IsNullOrEmpty(serviceAccountPath) && File.Exists(serviceAccountPath))
         {
-            FirebaseApp.Create(new AppOptions()
+            if (FirebaseApp.DefaultInstance == null)
             {
-                Credential = GoogleCredential.FromFile(configuration["Firebase:ServiceAccountPath"])
-            });
+                FirebaseApp.Create(new AppOptions()
+                {
+                    Credential = GoogleCredential.FromFile(serviceAccountPath)
+                });
+            }
+            _messaging = FirebaseMessaging.DefaultInstance;
         }
-        _messaging = FirebaseMessaging.DefaultInstance;
+        else
+        {
+            _messaging = null!; // Firebase not configured
+        }
     }
 
     public async Task<bool> SendPushNotificationAsync(string deviceToken, string title, string body, Dictionary<string, string>? data = null)
     {
+        if (_messaging == null)
+        {
+            // Firebase not configured, return false
+            return false;
+        }
+        
         try
         {
             var message = new Message()

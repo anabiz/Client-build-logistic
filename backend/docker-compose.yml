@@ -56,6 +56,8 @@ services:
       dockerfile: docker/ApiGateway.Dockerfile
     ports:
       - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
       - user-service
       - item-service
@@ -70,10 +72,14 @@ services:
     ports:
       - "5001:80"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=logistic_users;Username=postgres;Password=postgres
       - Kafka__BootstrapServers=kafka:9092
     networks:
       - bridge
+    depends_on:
+      - postgres
+      - kafka
 
   item-service:
     build:
@@ -82,22 +88,30 @@ services:
     ports:
       - "5002:80"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=logistic_items;Username=postgres;Password=postgres
       - ConnectionStrings__Kafka=kafka:9092
     networks:
       - bridge
+    depends_on:
+      - postgres
+      - kafka
 
   delivery-service:
     build:
       context: .
-      dockerfile: docker/ItemService.Dockerfile
+      dockerfile: docker/DeliveryService.Dockerfile
     ports:
       - "5003:80"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=logistic_deliveries;Username=postgres;Password=postgres
       - ConnectionStrings__Kafka=kafka:9092
     networks:
       - bridge
+    depends_on:
+      - postgres
+      - kafka
 
   notification-service:
     build:
@@ -106,6 +120,7 @@ services:
     ports:
       - "5004:80"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Kafka=kafka:9092
     networks:
       - bridge

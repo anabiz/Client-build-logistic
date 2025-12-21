@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using NotificationService.Services;
 using NotificationService.Application.Interfaces;
 using NotificationService.Application.Services;

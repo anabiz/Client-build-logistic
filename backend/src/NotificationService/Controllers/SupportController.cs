@@ -21,7 +21,7 @@ public class SupportController : ControllerBase
     public async Task<IActionResult> ContactSupport([FromBody] SupportRequest request)
     {
         // Send support request via email
-        var emailRequest = new EmailRequest
+        var emailRequest = new DTOs.EmailRequest
         {
             To = "support@clientbuild.ng",
             Subject = $"Support Request: {request.Subject}",

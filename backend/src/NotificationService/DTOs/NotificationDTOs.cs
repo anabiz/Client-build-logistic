@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace NotificationService.DTOs;
 
 public class SmsRequest
