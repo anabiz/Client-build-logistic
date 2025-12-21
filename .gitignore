@@ -31,3 +31,10 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# .NET Backend
+backend/src/*/bin/
+backend/src/*/obj/
+backend/src/*/*.user
+backend/src/*/appsettings.Development.json
+backend/src/*/appsettings.Production.json
