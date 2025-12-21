@@ -16,9 +16,9 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddItemServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Database - Use InMemory for now since PostgreSQL is not running
+        // Database - Use PostgreSQL
         services.AddDbContext<ItemDbContext>(options =>
-            options.UseInMemoryDatabase("ItemServiceDb"));
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
         // Kafka - Mock for now
         services.AddSingleton<IKafkaService>(provider => new MockKafkaService());
