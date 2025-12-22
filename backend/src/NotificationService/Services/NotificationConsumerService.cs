@@ -42,23 +42,39 @@ public class NotificationConsumerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var consumer = await _kafkaService.CreateConsumerAsync("notification-service", 
-            "item-status-changed", "delivery-assigned", "batch-uploaded");
-
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            // Create topics if they don't exist
+            await _kafkaService.CreateTopicsIfNotExistAsync(
+                "item-status-changed", 
+                "delivery-assigned", 
+                "batch-uploaded");
+
+            var consumer = await _kafkaService.CreateConsumerAsync("notification-service", 
+                "item-status-changed", "delivery-assigned", "batch-uploaded");
+
+            _logger.LogInformation("NotificationService started and subscribed to Kafka topics");
+
+            while (!stoppingToken.IsCancellationRequested)
             {
-                var result = consumer.Consume(TimeSpan.FromSeconds(1));
-                if (result != null)
+                try
                 {
-                    await ProcessMessage(result.Topic, result.Message.Value);
+                    var result = consumer.Consume(TimeSpan.FromSeconds(1));
+                    if (result != null)
+                    {
+                        await ProcessMessage(result.Topic, result.Message.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error consuming Kafka message, will retry");
+                    await Task.Delay(5000, stoppingToken);
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing Kafka message");
-            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize Kafka consumer, notification service will not process events");
         }
     }
 

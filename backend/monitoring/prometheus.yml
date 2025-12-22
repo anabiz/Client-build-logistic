@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:80']
+  
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:80']
+  
+  - job_name: 'item-service'
+    static_configs:
+      - targets: ['item-service:80']
+  
+  - job_name: 'delivery-service'
+    static_configs:
+      - targets: ['delivery-service:80']
+  
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:80']

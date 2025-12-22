@@ -47,5 +47,11 @@ public static class ServiceExtensions
             Console.WriteLine($"Mock Kafka: Creating consumer for group {groupId} with topics: {string.Join(", ", topics)}");
             return Task.FromResult<Confluent.Kafka.IConsumer<string, string>>(null!);
         }
+
+        public Task CreateTopicsIfNotExistAsync(params string[] topics)
+        {
+            Console.WriteLine($"Mock Kafka: Creating topics: {string.Join(", ", topics)}");
+            return Task.CompletedTask;
+        }
     }
 }

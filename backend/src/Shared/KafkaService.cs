@@ -1,5 +1,8 @@
 using Confluent.Kafka;
+using Confluent.Kafka.Admin;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -9,6 +12,7 @@ public interface IKafkaService
 {
     Task PublishAsync<T>(string topic, T message);
     Task<IConsumer<string, string>> CreateConsumerAsync(string groupId, params string[] topics);
+    Task CreateTopicsIfNotExistAsync(params string[] topics);
 }
 
 public class KafkaService : IKafkaService
@@ -53,5 +57,33 @@ public class KafkaService : IKafkaService
         var consumer = new ConsumerBuilder<string, string>(config).Build();
         consumer.Subscribe(topics);
         return Task.FromResult(consumer);
+    }
+
+    public async Task CreateTopicsIfNotExistAsync(params string[] topics)
+    {
+        try
+        {
+            using var adminClient = new AdminClientBuilder(_producerConfig).Build();
+            
+            var topicSpecs = topics.Select(topic => new TopicSpecification
+            {
+                Name = topic,
+                NumPartitions = 1,
+                ReplicationFactor = 1
+            }).ToList();
+
+            await adminClient.CreateTopicsAsync(topicSpecs);
+        }
+        catch (CreateTopicsException ex)
+        {
+            // Topics might already exist, which is fine
+            foreach (var result in ex.Results)
+            {
+                if (result.Error.Code != ErrorCode.TopicAlreadyExists)
+                {
+                    throw;
+                }
+            }
+        }
     }
 }

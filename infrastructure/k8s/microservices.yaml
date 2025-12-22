@@ -1,0 +1,182 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: logistic-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: ACR_LOGIN_SERVER/user-service:latest
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_CONNECTION
+        - name: Kafka__BootstrapServers
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: KAFKA_BOOTSTRAP_SERVERS
+        envFrom:
+        - configMapRef:
+            name: app-config
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: logistic-app
+spec:
+  selector:
+    app: user-service
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: item-service
+  namespace: logistic-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: item-service
+  template:
+    metadata:
+      labels:
+        app: item-service
+    spec:
+      containers:
+      - name: item-service
+        image: ACR_LOGIN_SERVER/item-service:latest
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_CONNECTION
+        - name: ConnectionStrings__Kafka
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: KAFKA_BOOTSTRAP_SERVERS
+        envFrom:
+        - configMapRef:
+            name: app-config
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: item-service
+  namespace: logistic-app
+spec:
+  selector:
+    app: item-service
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery-service
+  namespace: logistic-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: delivery-service
+  template:
+    metadata:
+      labels:
+        app: delivery-service
+    spec:
+      containers:
+      - name: delivery-service
+        image: ACR_LOGIN_SERVER/delivery-service:latest
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_CONNECTION
+        - name: ConnectionStrings__Kafka
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: KAFKA_BOOTSTRAP_SERVERS
+        envFrom:
+        - configMapRef:
+            name: app-config
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery-service
+  namespace: logistic-app
+spec:
+  selector:
+    app: delivery-service
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: logistic-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+      - name: notification-service
+        image: ACR_LOGIN_SERVER/notification-service:latest
+        env:
+        - name: ConnectionStrings__Kafka
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: KAFKA_BOOTSTRAP_SERVERS
+        envFrom:
+        - configMapRef:
+            name: app-config
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: logistic-app
+spec:
+  selector:
+    app: notification-service
+  ports:
+  - port: 80
+    targetPort: 80

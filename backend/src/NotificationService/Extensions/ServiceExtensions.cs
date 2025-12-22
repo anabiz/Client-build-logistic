@@ -12,12 +12,12 @@ public static class ServiceExtensions
     public static IServiceCollection AddNotificationServices(this IServiceCollection services, IConfiguration configuration)
     {
         // HTTP Clients
-        services.AddHttpClient<ISmsService, TermiiSmsService>();
-        services.AddHttpClient<NotificationConsumerService>();
-
+        services.AddHttpClient();
+        
         // Notification Services
-        services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<IPushNotificationService, FirebasePushNotificationService>();
+        services.AddSingleton<ISmsService, TermiiSmsService>();
+        services.AddSingleton<IEmailService, EmailService>();
+        services.AddSingleton<IPushNotificationService, FirebasePushNotificationService>();
         services.AddScoped<INotificationAppService, NotificationAppService>();
 
         // Kafka
