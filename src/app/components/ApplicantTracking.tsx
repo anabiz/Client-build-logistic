@@ -13,15 +13,44 @@ interface ApplicantTrackingProps {
 
 export function ApplicantTracking({ items }: ApplicantTrackingProps) {
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [trackedItem, setTrackedItem] = useState<Item | null>(null);
+  const [error, setError] = useState("");
 
   const handleTrack = () => {
-    const item = items.find(
-      (i) =>
+    setError("");
+    
+    if (!trackingNumber.trim()) {
+      setError("Please enter a tracking number");
+      return;
+    }
+    
+    if (!email.trim() && !phone.trim()) {
+      setError("Please enter either email or phone number");
+      return;
+    }
+
+    const item = items.find((i) => {
+      const matchesTracking = 
         i.itemNumber.toLowerCase() === trackingNumber.toLowerCase() ||
-        i.qrCode.toLowerCase() === trackingNumber.toLowerCase()
-    );
-    setTrackedItem(item || null);
+        i.qrCode.toLowerCase() === trackingNumber.toLowerCase();
+      
+      const matchesEmail = email.trim() ? 
+        i.applicantEmail.toLowerCase() === email.toLowerCase() : true;
+      
+      const matchesPhone = phone.trim() ? 
+        i.applicantPhone === phone.trim() : true;
+      
+      return matchesTracking && (matchesEmail || matchesPhone);
+    });
+    
+    if (!item) {
+      setError("Item not found. Please check your tracking number and contact details.");
+      setTrackedItem(null);
+    } else {
+      setTrackedItem(item);
+    }
   };
 
   const timeline = trackedItem
@@ -63,22 +92,52 @@ export function ApplicantTracking({ items }: ApplicantTrackingProps) {
         <div className="text-center">
           <h1 className="text-3xl mb-3">Track Your Delivery</h1>
           <p className="text-gray-600 mb-6">
-            Enter your tracking number or QR code to view your delivery status
+            Enter your tracking number and contact details to verify and track your delivery
           </p>
-          <div className="flex gap-3 max-w-2xl mx-auto">
-            <div className="relative flex-1">
+          <div className="space-y-4 max-w-2xl mx-auto">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
               <Input
                 placeholder="Enter tracking number (e.g., CB-2024-000001)"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleTrack()}
                 className="pl-10 h-12"
               />
             </div>
-            <Button onClick={handleTrack} size="lg">
-              Track Item
-            </Button>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                <Input
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                <Input
+                  type="tel"
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleTrack()}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
+            <div className="text-center">
+              <Button onClick={handleTrack} size="lg" className="w-full sm:w-auto">
+                Track Item
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+              Enter either email OR phone number for verification
+            </p>
           </div>
         </div>
       </Card>
@@ -213,6 +272,14 @@ export function ApplicantTracking({ items }: ApplicantTrackingProps) {
             </div>
           </Card>
         </div>
+      ) : error ? (
+        <Card className="p-8 text-center">
+          <Package className="size-16 text-red-400 mx-auto mb-4" />
+          <h3 className="mb-2 text-red-600">Verification Failed</h3>
+          <p className="text-gray-600">
+            {error}
+          </p>
+        </Card>
       ) : trackingNumber && !trackedItem ? (
         <Card className="p-8 text-center">
           <Package className="size-16 text-gray-400 mx-auto mb-4" />

@@ -13,6 +13,7 @@ import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
 import { AuditLogs } from "./components/AuditLogs";
 import { DispatchManagement } from "./components/DispatchManagement";
 import { RiderPerformance } from "./components/RiderPerformance";
+import { RidersManagement } from "./components/RidersManagement";
 import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Card } from "./components/ui/card";
@@ -222,6 +223,13 @@ export default function App() {
                   <TabsTrigger value="performance" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <Users className="size-3 sm:size-4" />
                     <span className="hidden sm:inline">Rider Performance</span>
+                    <span className="sm:hidden">Perf</span>
+                  </TabsTrigger>
+                )}
+                {(currentRole === "super-admin" || currentRole === "operations-manager") && (
+                  <TabsTrigger value="riders" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                    <Truck className="size-3 sm:size-4" />
+                    <span className="hidden sm:inline">Riders Management</span>
                     <span className="sm:hidden">Riders</span>
                   </TabsTrigger>
                 )}
@@ -315,6 +323,21 @@ export default function App() {
             {(currentRole === "super-admin" || currentRole === "operations-manager") && (
               <TabsContent value="performance">
                 <RiderPerformance riders={mockRiders} />
+              </TabsContent>
+            )}
+
+            {(currentRole === "super-admin" || currentRole === "operations-manager") && (
+              <TabsContent value="riders">
+                <RidersManagement 
+                  riders={mockRiders}
+                  onRiderSelect={(rider) => console.log('Selected rider:', rider)}
+                  onCreateRider={(rider) => {
+                    console.log('Create rider:', rider);
+                  }}
+                  onUpdateRider={(id, updates) => {
+                    console.log('Update rider:', id, updates);
+                  }}
+                />
               </TabsContent>
             )}
 

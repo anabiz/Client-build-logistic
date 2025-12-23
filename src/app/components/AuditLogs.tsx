@@ -1,6 +1,14 @@
-import { Shield, Calendar, User, Activity } from "lucide-react";
+import { Shield, Calendar, User, Activity, Search, Filter } from "lucide-react";
 import { useState } from "react";
 import { Card } from "./ui/card";
+import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import {
   Table,
   TableBody,
@@ -21,7 +29,41 @@ interface AuditLogsProps {
 
 export function AuditLogs({ logs }: AuditLogsProps) {
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [actionFilter, setActionFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const isMobile = useIsMobile();
+
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch = 
+      log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.itemId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.ipAddress?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesAction = actionFilter === "all" || log.action === actionFilter;
+    const matchesUser = userFilter === "all" || log.userId === userFilter;
+    
+    const matchesDate = dateFilter === "all" || (() => {
+      const logDate = new Date(log.timestamp);
+      const today = new Date();
+      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      switch (dateFilter) {
+        case "today": return logDate.toDateString() === today.toDateString();
+        case "yesterday": return logDate.toDateString() === yesterday.toDateString();
+        case "week": return logDate >= weekAgo;
+        default: return true;
+      }
+    })();
+    
+    return matchesSearch && matchesAction && matchesUser && matchesDate;
+  });
+
+  const uniqueActions = Array.from(new Set(logs.map(log => log.action)));
+  const uniqueUsers = Array.from(new Set(logs.map(log => ({ id: log.userId, name: log.userName }))));
 
   const {
     paginatedData,
@@ -32,7 +74,7 @@ export function AuditLogs({ logs }: AuditLogsProps) {
     endIndex,
     totalItems,
   } = usePagination({
-    data: logs,
+    data: filteredLogs,
     itemsPerPage,
   });
 
@@ -76,13 +118,68 @@ export function AuditLogs({ logs }: AuditLogsProps) {
             <Activity className="size-5 text-gray-600" />
             <h3>Recent Activity</h3>
           </div>
-          <p className="text-gray-600">{logs.length} total logs</p>
+          <p className="text-gray-600">{filteredLogs.length} of {logs.length} logs</p>
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <Input
+              placeholder="Search logs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Actions</SelectItem>
+              {uniqueActions.map((action) => (
+                <SelectItem key={action} value={action}>
+                  {action.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={userFilter} onValueChange={setUserFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="User" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              {uniqueUsers.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Date Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectItem value="week">Last 7 Days</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Mobile Card View */}
         {isMobile ? (
           <div className="space-y-3">
-            {paginatedData.map((log) => (
+            {paginatedData.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-gray-500">No audit logs found</p>
+              </Card>
+            ) : (
+              paginatedData.map((log) => (
               <Card key={log.id} className="p-4 bg-gray-50">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
@@ -131,7 +228,8 @@ export function AuditLogs({ logs }: AuditLogsProps) {
                   </div>
                 </div>
               </Card>
-            ))}
+              ))
+            )}
           </div>
         ) : (
           /* Desktop Table View */
@@ -148,7 +246,14 @@ export function AuditLogs({ logs }: AuditLogsProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedData.map((log) => (
+                {paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      No audit logs found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -189,7 +294,8 @@ export function AuditLogs({ logs }: AuditLogsProps) {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

@@ -5,31 +5,26 @@ namespace Shared.Models;
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
     public T? Data { get; set; }
-    public object? Errors { get; set; }
-
-    public ApiResponse() { }
-
-    public ApiResponse(T data, string message = "")
-    {
-        Success = true;
-        Data = data;
-        Message = message;
-    }
-
-    public ApiResponse(string message, object? errors = null)
-    {
-        Success = false;
-        Message = message;
-        Errors = errors;
-    }
+    public string? Message { get; set; }
+    public List<string>? Errors { get; set; }
 }
 
-public class PaginationRequest
+public class PagedList<T>
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
-    public string? Sort { get; set; }
-    public string? Search { get; set; }
+    public List<T> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => (int)System.Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasPreviousPage => PageNumber > 1;
+    public bool HasNextPage => PageNumber < TotalPages;
+
+    public PagedList(List<T> items, int totalCount, int pageNumber, int pageSize)
+    {
+        Items = items;
+        TotalCount = totalCount;
+        PageNumber = pageNumber;
+        PageSize = pageSize;
+    }
 }

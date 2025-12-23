@@ -6,22 +6,23 @@ namespace Shared.Controllers;
 [ApiController]
 public abstract class BaseController : ControllerBase
 {
-    protected IActionResult Success<T>(T data, string message = "Success")
+    protected IActionResult Success<T>(T data, string? message = null)
     {
         return Ok(new ApiResponse<T>
         {
             Success = true,
-            Message = message,
-            Data = data
+            Data = data,
+            Message = message
         });
     }
 
-    protected IActionResult Success(string message = "Success")
+    protected IActionResult Created<T>(T data, string? message = null)
     {
-        return Ok(new ApiResponse<object>
+        return StatusCode(201, new ApiResponse<T>
         {
             Success = true,
-            Message = message
+            Data = data,
+            Message = message ?? "Resource created successfully"
         });
     }
 
@@ -31,25 +32,6 @@ public abstract class BaseController : ControllerBase
         {
             Success = false,
             Message = message
-        });
-    }
-
-    protected IActionResult NotFound(string message = "Resource not found")
-    {
-        return StatusCode(404, new ApiResponse<object>
-        {
-            Success = false,
-            Message = message
-        });
-    }
-
-    protected IActionResult Created<T>(T data, string message = "Created successfully")
-    {
-        return StatusCode(201, new ApiResponse<T>
-        {
-            Success = true,
-            Message = message,
-            Data = data
         });
     }
 }

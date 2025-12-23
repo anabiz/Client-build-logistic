@@ -22,10 +22,31 @@ public class ItemAppService : IItemAppService
         _kafkaService = kafkaService;
     }
 
-    public async Task<ApiResponse<PagedList<Item>>> GetItemsAsync(PaginationRequest request, string? status = null, string? state = null)
+    public async Task<ApiResponse<PagedList<Item>>> GetItemsAsync(ItemQuery query)
     {
-        var items = await _unitOfWork.Items.GetPagedAsync(request, status, state);
-        return new ApiResponse<PagedList<Item>>(items, "Items retrieved successfully");
+        var items = await _unitOfWork.Items.GetAllAsync();
+        var filteredItems = items.AsQueryable();
+
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            filteredItems = filteredItems.Where(i => 
+                i.ItemNumber.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                i.ApplicantName.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                i.QrCode.Contains(query.Search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrEmpty(query.Status))
+        {
+            filteredItems = filteredItems.Where(i => i.Status.ToString() == query.Status);
+        }
+
+        if (!string.IsNullOrEmpty(query.State))
+        {
+            filteredItems = filteredItems.Where(i => i.State == query.State);
+        }
+
+        var pagedItems = PagedList<Item>.Create(filteredItems, query.Page, query.PageSize);
+        return new ApiResponse<PagedList<Item>>(pagedItems, "Items retrieved successfully");
     }
 
     public async Task<ApiResponse<Item>> GetItemByIdAsync(string id)
@@ -56,17 +77,24 @@ public class ItemAppService : IItemAppService
         return new ApiResponse<Item>(item, "Item created successfully");
     }
 
-    public async Task<ApiResponse<Item>> UpdateItemStatusAsync(string id, ItemStatus status)
+    public async Task<ApiResponse<Item>> UpdateItemStatusAsync(string id, string status)
     {
         var item = await _unitOfWork.Items.GetByIdAsync(id);
         if (item == null)
             throw new AppException(System.Net.HttpStatusCode.NotFound, "Item not found");
 
-        item.Status = status;
+        if (Enum.TryParse<ItemStatus>(status, true, out var itemStatus))
+        {
+            item.Status = itemStatus;
+        }
+        else
+        {
+            throw new AppException(System.Net.HttpStatusCode.BadRequest, "Invalid status");
+        }
         
-        if (status == ItemStatus.Dispatched)
+        if (itemStatus == ItemStatus.Dispatched)
             item.DispatchedAt = DateTime.UtcNow;
-        else if (status == ItemStatus.Delivered)
+        else if (itemStatus == ItemStatus.Delivered)
             item.DeliveredAt = DateTime.UtcNow;
 
         await _unitOfWork.Items.UpdateAsync(item);
@@ -83,7 +111,20 @@ public class ItemAppService : IItemAppService
         return new ApiResponse<Item>(item, "Item status updated successfully");
     }
 
-    public async Task<ApiResponse<object>> GetDashboardStatsAsync()
+    public async Task<ApiResponse<Item>> ReassignItemAsync(string id, string newRiderId, string reason)
+    {
+        var item = await _unitOfWork.Items.GetByIdAsync(id);
+        if (item == null)
+            throw new AppException(System.Net.HttpStatusCode.NotFound, "Item not found");
+
+        item.RiderId = newRiderId;
+        await _unitOfWork.Items.UpdateAsync(item);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ApiResponse<Item>(item, "Item reassigned successfully");
+    }
+
+    public async Task<ApiResponse<object>> GetItemStatsAsync(ItemStatsQuery query)
     {
         var allItems = await _unitOfWork.Items.GetAllAsync();
         var totalItems = allItems.Count();
@@ -103,50 +144,41 @@ public class ItemAppService : IItemAppService
         });
     }
 
-    public async Task<ApiResponse<object>> GetDeliveryPerformanceAsync()
+    public async Task<ApiResponse<IEnumerable<string>>> GetStatesAsync()
     {
-        var analytics = new
-        {
-            averageDeliveryTime = 2.5,
-            onTimeDeliveryRate = 94.2,
-            customerSatisfaction = 4.6,
-            monthlyTrends = new[]
-            {
-                new { month = "Nov", delivered = 1250, failed = 45 },
-                new { month = "Dec", delivered = 1380, failed = 32 }
-            }
-        };
-
-        return new ApiResponse<object>(analytics);
+        var states = new[] { "Lagos", "Abuja", "Rivers", "Kano", "Ogun", "Oyo", "Kaduna", "Anambra" };
+        return new ApiResponse<IEnumerable<string>>(states, "States retrieved successfully");
     }
 
-    public async Task<ApiResponse<object>> GetDeliveryTrendsAsync()
+    public async Task<ApiResponse<IEnumerable<string>>> GetLgasAsync(string state)
     {
-        var trendData = new[]
+        var lgas = state.ToLower() switch
         {
-            new { date = "Dec 15", deliveries = 45, failed = 2 },
-            new { date = "Dec 16", deliveries = 52, failed = 3 },
-            new { date = "Dec 17", deliveries = 48, failed = 1 },
-            new { date = "Dec 18", deliveries = 61, failed = 4 },
-            new { date = "Dec 19", deliveries = 55, failed = 2 },
-            new { date = "Dec 20", deliveries = 58, failed = 1 },
-            new { date = "Dec 21", deliveries = 42, failed = 3 }
+            "lagos" => new[] { "Ikeja", "Eti-Osa", "Lekki", "Isolo", "Surulere", "Gbagada" },
+            "abuja" => new[] { "Abuja Municipal", "Gwagwalada", "Kuje", "Bwari" },
+            _ => new[] { "Central", "North", "South" }
         };
-
-        return new ApiResponse<object>(trendData);
+        return new ApiResponse<IEnumerable<string>>(lgas, "LGAs retrieved successfully");
     }
 
-    public async Task<ApiResponse<object>> GetStateDistributionAsync()
+    public async Task<ApiResponse<Item>> TrackItemAsync(string trackingNumber, string? email, string? phone)
     {
-        var stateData = new[]
-        {
-            new { state = "Lagos", count = 450 },
-            new { state = "Abuja", count = 280 },
-            new { state = "Rivers", count = 180 },
-            new { state = "Kano", count = 120 },
-            new { state = "Ogun", count = 95 }
-        };
+        if (string.IsNullOrWhiteSpace(trackingNumber))
+            throw new AppException(System.Net.HttpStatusCode.BadRequest, "Tracking number is required");
+        
+        if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phone))
+            throw new AppException(System.Net.HttpStatusCode.BadRequest, "Email or phone number is required for verification");
 
-        return new ApiResponse<object>(stateData);
+        var items = await _unitOfWork.Items.GetAllAsync();
+        var item = items.FirstOrDefault(i => 
+            (i.ItemNumber.Equals(trackingNumber, StringComparison.OrdinalIgnoreCase) || 
+             i.QrCode.Equals(trackingNumber, StringComparison.OrdinalIgnoreCase)) &&
+            ((!string.IsNullOrWhiteSpace(email) && i.ApplicantEmail.Equals(email, StringComparison.OrdinalIgnoreCase)) ||
+             (!string.IsNullOrWhiteSpace(phone) && i.ApplicantPhone.Equals(phone, StringComparison.OrdinalIgnoreCase))));
+
+        if (item == null)
+            throw new AppException(System.Net.HttpStatusCode.NotFound, "Item not found or verification failed");
+
+        return new ApiResponse<Item>(item, "Item tracked successfully");
     }
 }

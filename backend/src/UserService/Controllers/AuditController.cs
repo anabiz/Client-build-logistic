@@ -20,30 +20,17 @@ public class AuditController : ControllerBase
     }
 
     [HttpGet("logs")]
-    public async Task<IActionResult> GetAuditLogs([FromQuery] PaginationRequest request)
+    public async Task<IActionResult> GetAuditLogs([FromQuery] AuditLogQuery query)
     {
-        // Mock implementation - in real scenario, this would be from a dedicated audit service
-        var mockLogs = new List<AuditLog>
-        {
-            new AuditLog
-            {
-                Id = "AL001",
-                Timestamp = DateTime.UtcNow.AddHours(-2),
-                UserId = "3",
-                UserName = "Operations Manager",
-                Action = "ITEM_ASSIGNED",
-                ItemId = "ITM003",
-                Details = "Item assigned to rider",
-                IpAddress = "105.112.45.23"
-            }
-        };
+        var result = await _userAppService.GetAuditLogsAsync(query);
+        return Ok(result);
+    }
 
-        var response = new ApiResponse<PagedList<AuditLog>>
-        {
-            Success = true,
-            Data = new PagedList<AuditLog>(mockLogs, mockLogs.Count, request.Page, request.PageSize)
-        };
-
+    [HttpGet("actions")]
+    public async Task<IActionResult> GetAuditActions()
+    {
+        var actions = new[] { "ITEM_ASSIGNED", "ITEM_PICKED_UP", "ITEM_DELIVERED", "BATCH_UPLOADED", "HUB_TRANSFER", "USER_LOGIN", "STATUS_CHANGED" };
+        var response = new ApiResponse<string[]> { Success = true, Data = actions };
         return Ok(response);
     }
 }

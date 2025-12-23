@@ -10,4 +10,5 @@ public interface IUserAppService
     Task<ApiResponse<(string token, User user)>> RegisterAsync(string name, string email, string password, UserRole role);
     Task<ApiResponse<PagedList<User>>> GetAllUsersAsync(PaginationRequest request);
     Task<ApiResponse<User>> GetUserByIdAsync(string id);
+    Task<ApiResponse<PagedList<AuditLog>>> GetAuditLogsAsync(AuditLogQuery query);
 }

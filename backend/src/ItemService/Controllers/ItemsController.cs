@@ -21,73 +21,84 @@ public class ItemsController : BaseController
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedList<Item>>), 200)]
-    public async Task<IActionResult> GetItems([FromQuery] PaginationRequest request, [FromQuery] string? status, [FromQuery] string? state)
+    public async Task<IActionResult> GetItems([FromQuery] ItemQuery query)
     {
-        var result = await _itemAppService.GetItemsAsync(request, status, state);
-        return Ok(result);
+        var result = await _itemAppService.GetItemsAsync(query);
+        return Success(result);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetItem(string id)
     {
         var result = await _itemAppService.GetItemByIdAsync(id);
-        if (!result.Success)
-            return NotFound(result);
-        
-        return Ok(result);
+        return result != null ? Success(result) : NotFound("Item not found");
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateItem([FromBody] Item item)
     {
         var result = await _itemAppService.CreateItemAsync(item);
-        return CreatedAtAction(nameof(GetItem), new { id = result.Data!.Id }, result);
+        return Created(result);
     }
 
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateItemStatus(string id, [FromBody] UpdateStatusRequest request)
     {
         var result = await _itemAppService.UpdateItemStatusAsync(id, request.Status);
-        if (!result.Success)
-            return NotFound(result);
-        
-        return Ok(result);
+        return result != null ? Success(result) : NotFound("Item not found");
+    }
+
+    [HttpPost("{id}/reassign")]
+    public async Task<IActionResult> ReassignItem(string id, [FromBody] ReassignItemRequest request)
+    {
+        var result = await _itemAppService.ReassignItemAsync(id, request.NewRiderId, request.Reason);
+        return result != null ? Success(result) : NotFound("Item not found");
+    }
+
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetItemStats([FromQuery] ItemStatsQuery query)
+    {
+        var result = await _itemAppService.GetItemStatsAsync(query);
+        return Success(result);
+    }
+
+    [HttpGet("states")]
+    public async Task<IActionResult> GetStates()
+    {
+        var result = await _itemAppService.GetStatesAsync();
+        return Success(result);
+    }
+
+    [HttpGet("lgas/{state}")]
+    public async Task<IActionResult> GetLgas(string state)
+    {
+        var result = await _itemAppService.GetLgasAsync(state);
+        return Success(result);
+    }
+
+    [HttpPost("track")]
+    public async Task<IActionResult> TrackItem([FromBody] TrackItemRequest request)
+    {
+        var result = await _itemAppService.TrackItemAsync(request.TrackingNumber, request.Email, request.Phone);
+        return result != null ? Success(result) : NotFound("Item not found or verification failed");
     }
 
     [HttpPost("{id}/print-label")]
     public async Task<IActionResult> PrintLabel(string id)
     {
         var item = await _itemAppService.GetItemByIdAsync(id);
-        if (!item.Success)
-            return NotFound(item);
+        if (item == null)
+            return NotFound("Item not found");
 
-        // Generate printable QR label data
         var labelData = new
         {
-            itemNumber = item.Data!.ItemNumber,
-            qrCode = item.Data.QrCode,
-            applicantName = item.Data.ApplicantName,
-            deliveryAddress = item.Data.DeliveryAddress,
-            printUrl = $"/api/items/{id}/label.pdf"
+            itemNumber = item.ItemNumber,
+            qrCode = item.QrCode,
+            applicantName = item.ApplicantName,
+            deliveryAddress = item.DeliveryAddress,
+            printUrl = $"/api/v1/items/{id}/label.pdf"
         };
 
-        return Ok(new ApiResponse<object>
-        {
-            Success = true,
-            Data = labelData,
-            Message = "Label generated successfully"
-        });
-    }
-
-    [HttpGet("search")]
-    public async Task<IActionResult> SearchItems([FromQuery] string q, [FromQuery] PaginationRequest request)
-    {
-        // Global search across items
-        var items = await _itemAppService.GetItemsAsync(request, null, null);
-        
-        // Filter by search query (mock implementation)
-        // In real implementation, use full-text search or database search
-        
-        return Ok(items);
+        return Success(labelData, "Label generated successfully");
     }
 }

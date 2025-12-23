@@ -21,10 +21,17 @@ public class DeliveriesController : BaseController
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedList<Delivery>>), 200)]
-    public async Task<IActionResult> GetDeliveries([FromQuery] PaginationRequest request, [FromQuery] string? riderId)
+    public async Task<IActionResult> GetDeliveries([FromQuery] DeliveryQuery query)
     {
-        var result = await _deliveryAppService.GetDeliveriesAsync(request, riderId);
-        return Ok(result);
+        var result = await _deliveryAppService.GetDeliveriesAsync(query);
+        return Success(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetDelivery(string id)
+    {
+        var result = await _deliveryAppService.GetDeliveryByIdAsync(id);
+        return result != null ? Success(result) : NotFound("Delivery not found");
     }
 
     [HttpPost("assign")]
@@ -32,7 +39,14 @@ public class DeliveriesController : BaseController
     public async Task<IActionResult> AssignDelivery([FromBody] AssignDeliveryRequest request)
     {
         var result = await _deliveryAppService.AssignDeliveryAsync(request);
-        return Ok(result);
+        return Success(result);
+    }
+
+    [HttpPost("bulk-assign")]
+    public async Task<IActionResult> BulkAssignDeliveries([FromBody] BulkAssignRequest request)
+    {
+        var result = await _deliveryAppService.BulkAssignDeliveriesAsync(request);
+        return Success(result);
     }
 
     [HttpPut("{id}/pickup")]
@@ -40,7 +54,7 @@ public class DeliveriesController : BaseController
     public async Task<IActionResult> MarkPickedUp(string id)
     {
         var result = await _deliveryAppService.MarkPickedUpAsync(id);
-        return Ok(result);
+        return Success(result);
     }
 
     [HttpPut("{id}/deliver")]
@@ -48,6 +62,20 @@ public class DeliveriesController : BaseController
     public async Task<IActionResult> MarkDelivered(string id, [FromBody] ProofOfDeliveryRequest request)
     {
         var result = await _deliveryAppService.MarkDeliveredAsync(id, request);
-        return Ok(result);
+        return Success(result);
+    }
+
+    [HttpPut("{id}/fail")]
+    public async Task<IActionResult> MarkFailed(string id, [FromBody] FailDeliveryRequest request)
+    {
+        var result = await _deliveryAppService.MarkFailedAsync(id, request.Reason, request.Notes);
+        return Success(result);
+    }
+
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetDeliveryStats([FromQuery] DeliveryStatsQuery query)
+    {
+        var result = await _deliveryAppService.GetDeliveryStatsAsync(query);
+        return Success(result);
     }
 }
