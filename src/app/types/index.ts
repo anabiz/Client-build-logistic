@@ -80,6 +80,21 @@ export interface Delivery {
     recipientName: string;
   };
   failureReason?: string;
+  reassignmentHistory?: ReassignmentRecord[];
+}
+
+export interface ReassignmentRecord {
+  id: string;
+  timestamp: string;
+  fromRiderId: string;
+  fromRiderName: string;
+  toRiderId: string;
+  toRiderName: string;
+  reason: string;
+  reasonCategory: "rider-unavailable" | "vehicle-breakdown" | "recipient-relocated" | "performance-issue" | "address-correction" | "other";
+  reassignedBy: string;
+  reassignedByName: string;
+  notes?: string;
 }
 
 export interface AuditLog {

@@ -1,18 +1,29 @@
-import { X, Package, MapPin, User, Phone, Mail, Calendar, QrCode as QrCodeIcon, Truck, CheckCircle, AlertCircle } from "lucide-react";
+import { X, Package, MapPin, User, Phone, Mail, Calendar, QrCode as QrCodeIcon, Truck, CheckCircle, AlertCircle, Camera, FileSignature, UserCheck, History, ArrowRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { ItemStatusBadge } from "./ItemStatusBadge";
 import { Separator } from "./ui/separator";
 import { Item } from "../types";
-import { mockRiders } from "../data/mockData";
+import { mockRiders, mockDeliveries } from "../data/mockData";
+import { useState } from "react";
+import { ReassignItemModal } from "./ReassignItemModal";
 
 interface ItemDetailModalProps {
   item: Item;
   onClose: () => void;
+  onReassign?: (
+    itemId: string,
+    newRiderId: string,
+    reason: string,
+    reasonCategory: any,
+    notes?: string
+  ) => void;
+  currentUserRole?: string;
 }
 
-export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
+export function ItemDetailModal({ item, onClose, onReassign, currentUserRole }: ItemDetailModalProps) {
   const rider = item.riderId ? mockRiders.find((r) => r.id === item.riderId) : null;
+  const delivery = mockDeliveries.find((d) => d.itemId === item.id);
 
   const timeline = [
     {
@@ -46,6 +57,8 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
       completed: item.status === "delivered",
     },
   ];
+
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -228,6 +241,168 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
               </Card>
             </>
           )}
+
+          {/* Proof of Delivery - Only show for delivered items */}
+          {item.status === "delivered" && delivery?.proofOfDelivery && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="flex items-center gap-2">
+                  <CheckCircle className="size-5 text-green-600" />
+                  Proof of Delivery (POD)
+                </h3>
+                <Card className="p-6 bg-green-50 border-green-200">
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <p className="text-gray-600 mb-1">Delivered To</p>
+                        <p className="text-lg">{delivery.proofOfDelivery.recipientName}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 mb-1">Delivery Time</p>
+                        <p className="text-lg">
+                          {new Date(delivery.proofOfDelivery.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator className="bg-green-200" />
+
+                    <div>
+                      <p className="text-gray-600 mb-2 flex items-center gap-2">
+                        <MapPin className="size-4" />
+                        GPS Coordinates
+                      </p>
+                      <p className="font-mono bg-white px-3 py-2 rounded border border-green-200">
+                        {delivery.proofOfDelivery.gpsLocation}
+                      </p>
+                      <p className="text-gray-500 mt-1">
+                        Location verified and logged for audit trail
+                      </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-gray-600 mb-2 flex items-center gap-2">
+                          <FileSignature className="size-4" />
+                          Digital Signature
+                        </p>
+                        <Card className="p-4 bg-white border border-green-200">
+                          <div className="h-24 flex items-center justify-center bg-gray-50 rounded">
+                            <p className="text-gray-400 italic">Signature captured</p>
+                          </div>
+                        </Card>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 mb-2 flex items-center gap-2">
+                          <Camera className="size-4" />
+                          Delivery Photo
+                        </p>
+                        <Card className="p-4 bg-white border border-green-200">
+                          <div className="h-24 flex items-center justify-center bg-gray-50 rounded">
+                            <Camera className="size-8 text-gray-400" />
+                          </div>
+                        </Card>
+                      </div>
+                    </div>
+
+                    <Card className="p-3 bg-white border-green-200">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="size-4 text-green-600 mt-0.5" />
+                        <div>
+                          <p className="text-green-900">Verified Delivery</p>
+                          <p className="text-green-700">
+                            All proof of delivery requirements met. Delivery record is immutable and stored securely.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </Card>
+              </div>
+            </>
+          )}
+
+          {/* Reassignment History */}
+          {delivery?.reassignmentHistory && delivery.reassignmentHistory.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="flex items-center gap-2">
+                  <History className="size-5 text-orange-600" />
+                  Reassignment History
+                </h3>
+                <Card className="p-4 bg-orange-50 border-orange-200">
+                  <div className="space-y-4">
+                    {delivery.reassignmentHistory.map((record, index) => (
+                      <div key={record.id}>
+                        {index > 0 && <Separator className="my-4" />}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-orange-100 px-3 py-1 rounded">
+                                <p className="text-orange-900">Reassignment #{index + 1}</p>
+                              </div>
+                              <p className="text-gray-500">
+                                {new Date(record.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <div>
+                              <p className="text-gray-600 mb-1">From Rider</p>
+                              <div className="bg-white px-3 py-2 rounded border">
+                                <p>{record.fromRiderName}</p>
+                                <p className="text-gray-500">ID: {record.fromRiderId}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-center">
+                              <ArrowRight className="size-6 text-orange-600" />
+                            </div>
+                            <div>
+                              <p className="text-gray-600 mb-1">To Rider</p>
+                              <div className="bg-white px-3 py-2 rounded border border-green-500">
+                                <p>{record.toRiderName}</p>
+                                <p className="text-gray-500">ID: {record.toRiderId}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white p-3 rounded border">
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-gray-600 mb-1">Reason Category</p>
+                                <div className="inline-block bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                                  {record.reasonCategory.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-gray-600 mb-1">Reassigned By</p>
+                                <p>{record.reassignedByName}</p>
+                              </div>
+                            </div>
+
+                            <div className="mt-3">
+                              <p className="text-gray-600 mb-1">Reason</p>
+                              <p>{record.reason}</p>
+                            </div>
+
+                            {record.notes && (
+                              <div className="mt-3 p-2 bg-gray-50 rounded">
+                                <p className="text-gray-600 mb-1">Additional Notes</p>
+                                <p className="text-gray-700 italic">{record.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="sticky bottom-0 bg-white border-t p-6 flex justify-end gap-3">
@@ -235,11 +410,31 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
             Close
           </Button>
           <Button>
-            <QrCodeIcon className="size-4 mr-2" />
+            <QrCodeIcon className="size-4" />
             Print QR Label
           </Button>
+          {(currentUserRole === "super-admin" || currentUserRole === "operations-manager") && rider && !["delivered", "failed"].includes(item.status) && (
+            <Button
+              variant="outline"
+              className="border-orange-500 text-orange-600 hover:bg-orange-50"
+              onClick={() => setIsReassignModalOpen(true)}
+            >
+              <UserCheck className="size-4" />
+              Reassign Rider
+            </Button>
+          )}
         </div>
       </Card>
+
+      {isReassignModalOpen && rider && onReassign && (
+        <ReassignItemModal
+          item={item}
+          currentRider={rider}
+          availableRiders={mockRiders}
+          onClose={() => setIsReassignModalOpen(false)}
+          onReassign={onReassign}
+        />
+      )}
     </div>
   );
 }

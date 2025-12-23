@@ -23,6 +23,8 @@ import {
 } from "./ui/table";
 import { Badge } from "./ui/badge";
 import { Batch } from "../types";
+import { usePagination } from "../hooks/usePagination";
+import { PaginationControls } from "./PaginationControls";
 
 interface BatchManagementProps {
   batches: Batch[];
@@ -31,6 +33,20 @@ interface BatchManagementProps {
 
 export function BatchManagement({ batches, onBatchSelect }: BatchManagementProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    goToPage,
+    startIndex,
+    endIndex,
+    totalItems,
+  } = usePagination({
+    data: batches,
+    itemsPerPage,
+  });
 
   const getStatusBadge = (status: Batch["status"]) => {
     const variants = {
@@ -98,7 +114,7 @@ export function BatchManagement({ batches, onBatchSelect }: BatchManagementProps
       </div>
 
       <div className="grid gap-4">
-        {batches.map((batch) => (
+        {paginatedData.map((batch) => (
           <Card
             key={batch.id}
             className="p-4 cursor-pointer hover:shadow-md transition-shadow"
@@ -116,7 +132,7 @@ export function BatchManagement({ batches, onBatchSelect }: BatchManagementProps
               </div>
               {getStatusBadge(batch.status)}
             </div>
-            <div className="grid grid-cols-3 gap-4 text-sm pl-11">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm pl-0 sm:pl-11">
               <div>
                 <p className="text-gray-600">Total Items</p>
                 <p>{batch.totalItems}</p>
@@ -133,6 +149,18 @@ export function BatchManagement({ batches, onBatchSelect }: BatchManagementProps
           </Card>
         ))}
       </div>
+
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+        showItemsPerPage={true}
+      />
     </div>
   );
 }

@@ -262,6 +262,21 @@ export const mockDeliveries: Delivery[] = [
     status: "in-transit",
     assignedAt: "2024-12-19T08:00:00Z",
     pickedUpAt: "2024-12-20T10:15:00Z",
+    reassignmentHistory: [
+      {
+        id: "RA001",
+        timestamp: "2024-12-19T15:30:00Z",
+        fromRiderId: "R001",
+        fromRiderName: "Tunde Bakare",
+        toRiderId: "R002",
+        toRiderName: "Chukwudi Eze",
+        reason: "Original rider's motorcycle had mechanical issues",
+        reasonCategory: "vehicle-breakdown",
+        reassignedBy: "3",
+        reassignedByName: "Operations Manager",
+        notes: "Rider R001 reported engine trouble. R002 was nearby and could pick up immediately.",
+      },
+    ],
   },
   {
     id: "D003",

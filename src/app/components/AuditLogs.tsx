@@ -1,4 +1,5 @@
 import { Shield, Calendar, User, Activity } from "lucide-react";
+import { useState } from "react";
 import { Card } from "./ui/card";
 import {
   Table,
@@ -10,12 +11,31 @@ import {
 } from "./ui/table";
 import { Badge } from "./ui/badge";
 import { AuditLog } from "../types";
+import { usePagination } from "../hooks/usePagination";
+import { PaginationControls } from "./PaginationControls";
+import { useIsMobile } from "./ui/use-mobile";
 
 interface AuditLogsProps {
   logs: AuditLog[];
 }
 
 export function AuditLogs({ logs }: AuditLogsProps) {
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const isMobile = useIsMobile();
+
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    goToPage,
+    startIndex,
+    endIndex,
+    totalItems,
+  } = usePagination({
+    data: logs,
+    itemsPerPage,
+  });
+
   const getActionBadge = (action: string) => {
     const variants: Record<string, string> = {
       ITEM_ASSIGNED: "bg-blue-100 text-blue-800 hover:bg-blue-100",
@@ -59,64 +79,133 @@ export function AuditLogs({ logs }: AuditLogsProps) {
           <p className="text-gray-600">{logs.length} total logs</p>
         </div>
 
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Details</TableHead>
-                <TableHead>Item ID</TableHead>
-                <TableHead>IP Address</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>
+        {/* Mobile Card View */}
+        {isMobile ? (
+          <div className="space-y-3">
+            {paginatedData.map((log) => (
+              <Card key={log.id} className="p-4 bg-gray-50">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <Calendar className="size-4 text-gray-400" />
                       <div>
-                        <p>{new Date(log.timestamp).toLocaleDateString()}</p>
-                        <p className="text-gray-500">
+                        <p className="text-sm">{new Date(log.timestamp).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500">
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <User className="size-4 text-gray-400" />
-                      <div>
-                        <p>{log.userName}</p>
-                        <p className="text-gray-500">ID: {log.userId}</p>
+                    {getActionBadge(log.action)}
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="text-gray-600">User</p>
+                      <div className="flex items-center gap-2">
+                        <User className="size-3 text-gray-400" />
+                        <div>
+                          <p>{log.userName}</p>
+                          <p className="text-gray-500 text-xs">ID: {log.userId}</p>
+                        </div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>{getActionBadge(log.action)}</TableCell>
-                  <TableCell>
-                    <p className="text-gray-600 max-w-md">{log.details}</p>
-                  </TableCell>
-                  <TableCell>
-                    {log.itemId ? (
-                      <span className="font-mono text-sm">{log.itemId}</span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
+
+                    <div>
+                      <p className="text-gray-600">Details</p>
+                      <p>{log.details}</p>
+                    </div>
+
+                    {log.itemId && (
+                      <div>
+                        <p className="text-gray-600">Item ID</p>
+                        <p className="font-mono text-xs">{log.itemId}</p>
+                      </div>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {log.ipAddress ? (
-                      <span className="font-mono text-sm">{log.ipAddress}</span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
+
+                    {log.ipAddress && (
+                      <div>
+                        <p className="text-gray-600">IP Address</p>
+                        <p className="font-mono text-xs">{log.ipAddress}</p>
+                      </div>
                     )}
-                  </TableCell>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead>Item ID</TableHead>
+                  <TableHead>IP Address</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {paginatedData.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="size-4 text-gray-400" />
+                        <div>
+                          <p>{new Date(log.timestamp).toLocaleDateString()}</p>
+                          <p className="text-gray-500">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <User className="size-4 text-gray-400" />
+                        <div>
+                          <p>{log.userName}</p>
+                          <p className="text-gray-500">ID: {log.userId}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getActionBadge(log.action)}</TableCell>
+                    <TableCell>
+                      <p className="text-gray-600 max-w-md">{log.details}</p>
+                    </TableCell>
+                    <TableCell>
+                      {log.itemId ? (
+                        <span className="font-mono text-sm">{log.itemId}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {log.ipAddress ? (
+                        <span className="font-mono text-sm">{log.ipAddress}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          showItemsPerPage={true}
+        />
       </Card>
 
       {/* Security Notice */}
