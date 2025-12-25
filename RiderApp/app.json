@@ -21,6 +21,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F35C7A"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.anabiz.riderapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }

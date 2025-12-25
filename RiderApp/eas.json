@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 3.0.0"
+    "version": ">= 12.0.0"
   },
   "build": {
     "development": {
@@ -8,15 +8,22 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "env": {
+          "EXPO_USE_KOTLIN_2": "true"
+        }
       }
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "env": {
+          "EXPO_USE_KOTLIN_2": "true"
+        }
       }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

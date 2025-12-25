@@ -1,18 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, TextInput, BackHandler, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, TextInput, BackHandler, KeyboardAvoidingView, Platform, Image, Vibration } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
+  const [showItemDetailModal, setShowItemDetailModal] = useState(false);
   const [recipientName, setRecipientName] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [podPhoto, setPodPhoto] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sound, setSound] = useState();
+  const [isRinging, setIsRinging] = useState(false);
+
+  // Configure notifications
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
 
   useEffect(() => {
     const backAction = () => {
@@ -26,6 +40,65 @@ export default function App() {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
   }, [activeTab]);
+
+  const playRingtone = async () => {
+    try {
+      setIsRinging(true);
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' },
+        { shouldPlay: true, isLooping: true }
+      );
+      setSound(sound);
+      
+      // Vibrate in pattern
+      Vibration.vibrate([1000, 1000, 1000, 1000], true);
+      
+      // Stop after 30 seconds
+      setTimeout(() => {
+        stopRingtone();
+      }, 30000);
+    } catch (error) {
+      console.log('Error playing sound:', error);
+    }
+  };
+
+  const stopRingtone = async () => {
+    if (sound) {
+      await sound.unloadAsync();
+      setSound(undefined);
+    }
+    Vibration.cancel();
+    setIsRinging(false);
+  };
+
+  const triggerDeliveryNotification = async (delivery) => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🚚 New Delivery Assignment!',
+        body: `Item ${delivery.item} for ${delivery.customer}`,
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: null,
+    });
+    
+    playRingtone();
+    
+    Alert.alert(
+      '📞 New Delivery Assignment',
+      `Item: ${delivery.item}\nCustomer: ${delivery.customer}\nAddress: ${delivery.address}`,
+      [
+        { text: 'Dismiss', onPress: stopRingtone },
+        { text: 'View Details', onPress: () => { stopRingtone(); startDelivery(delivery); } }
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const showItemDetails = (delivery) => {
+    setSelectedDelivery(delivery);
+    setShowItemDetailModal(true);
+  };
 
   const startDelivery = (delivery) => {
     setSelectedDelivery(delivery);
@@ -384,7 +457,7 @@ export default function App() {
 
     return (
       <View style={activeTab === 'history' ? styles.contentNoTabs : styles.content}>
-        <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
+        <View style={[styles.card, { backgroundColor: currentTheme.card, borderWidth: 0 }]}>
           <TouchableOpacity onPress={() => setActiveTab('deliveries')} style={styles.backButton}>
             <View style={styles.backButtonContent}>
               <Ionicons name="arrow-back" size={16} color="#F35C7A" style={{ marginRight: 6 }} />
@@ -422,7 +495,8 @@ export default function App() {
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 30 }}>
           {filteredHistory.map(delivery => (
-            <View key={delivery.id} style={[styles.deliveryCard, { backgroundColor: currentTheme.card, borderColor: cardBorderColor }]}>
+            <TouchableOpacity key={delivery.id} onPress={() => showItemDetails(delivery)}>
+            <View style={[styles.deliveryCard, { backgroundColor: currentTheme.card, borderColor: cardBorderColor }]}>
               <View style={styles.deliveryHeader}>
                 <View style={styles.deliveryInfo}>
                   <Text style={[styles.itemNumber, { color: currentTheme.text }]}>📦 {delivery.item}</Text>
@@ -449,6 +523,7 @@ export default function App() {
                 )}
               </View>
             </View>
+            </TouchableOpacity>
           ))}
           {filteredHistory.length === 0 && (
             <View style={[styles.card, { backgroundColor: currentTheme.card, alignItems: 'center', padding: 40 }]}>
@@ -619,6 +694,101 @@ export default function App() {
       {activeTab === 'profile' && renderProfile()}
       {activeTab === 'delivery-detail' && renderDeliveryDetail()}
       
+      {/* Test Notification Button */}
+      <TouchableOpacity 
+        style={styles.testNotificationButton}
+        onPress={() => triggerDeliveryNotification(deliveries[0])}
+      >
+        <Text style={styles.testNotificationText}>📞 Test Notification</Text>
+      </TouchableOpacity>
+      
+      {/* Item Detail Modal */}
+      {showItemDetailModal && selectedDelivery && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: currentTheme.card }]}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: currentTheme.text }]}>📦 Item Details</Text>
+                <TouchableOpacity onPress={() => setShowItemDetailModal(false)}>
+                  <Ionicons name="close" size={24} color={currentTheme.text} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={[styles.card, { backgroundColor: currentTheme.container, marginHorizontal: 0 }]}>
+                <Text style={[styles.cardTitle, { color: currentTheme.text }]}>Item Information</Text>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: currentTheme.textSecondary }]}>Item Number:</Text>
+                  <Text style={[styles.detailValue, { color: currentTheme.text }]}>{selectedDelivery.item}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: currentTheme.textSecondary }]}>Customer:</Text>
+                  <Text style={[styles.detailValue, { color: currentTheme.text }]}>{selectedDelivery.customer}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: currentTheme.textSecondary }]}>Status:</Text>
+                  <View style={[styles.statusBadge, selectedDelivery.status === 'delivered' ? styles.delivered : styles.late]}>
+                    <Text style={styles.statusText}>{selectedDelivery.status.toUpperCase()}</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={[styles.card, { backgroundColor: currentTheme.container, marginHorizontal: 0 }]}>
+                <Text style={[styles.cardTitle, { color: currentTheme.text }]}>Delivery Address</Text>
+                <Text style={[styles.address, { color: currentTheme.textTertiary }]}>📍 {selectedDelivery.address}</Text>
+              </View>
+              
+              {selectedDelivery.status === 'delivered' && (
+                <View style={[styles.card, { backgroundColor: '#f0fdf4', marginHorizontal: 0 }]}>
+                  <Text style={[styles.cardTitle, { color: '#166534' }]}>📷 Proof of Delivery (POD)</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: '#166534' }]}>Delivered:</Text>
+                    <Text style={[styles.detailValue, { color: '#166534' }]}>{selectedDelivery.date} at {selectedDelivery.time}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: '#166534' }]}>GPS Location:</Text>
+                    <Text style={[styles.detailValue, { color: '#166534' }]}>6.5244, 3.3792</Text>
+                  </View>
+                  <View style={styles.podSection}>
+                    <Text style={[styles.detailLabel, { color: '#166534' }]}>Photo Evidence:</Text>
+                    <View style={styles.podPhotoContainer}>
+                      <Text style={styles.podPhotoText}>📷</Text>
+                      <Text style={[styles.podPhotoSubtext, { color: '#166534' }]}>POD Photo Available</Text>
+                    </View>
+                  </View>
+                  <View style={styles.podSection}>
+                    <Text style={[styles.detailLabel, { color: '#166534' }]}>Recipient Signature:</Text>
+                    <View style={styles.podPhotoContainer}>
+                      <Text style={styles.podPhotoText}>✍️</Text>
+                      <Text style={[styles.podPhotoSubtext, { color: '#166534' }]}>Signature Captured</Text>
+                    </View>
+                  </View>
+                  {selectedDelivery.rating > 0 && (
+                    <View style={styles.detailRow}>
+                      <Text style={[styles.detailLabel, { color: '#166534' }]}>Rating:</Text>
+                      <Text style={[styles.detailValue, { color: '#166534' }]}>⭐ {selectedDelivery.rating}/5</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+              
+              {selectedDelivery.status === 'cancelled' && (
+                <View style={[styles.card, { backgroundColor: '#fef2f2', marginHorizontal: 0 }]}>
+                  <Text style={[styles.cardTitle, { color: '#dc2626' }]}>❌ Delivery Cancelled</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: '#dc2626' }]}>Reason:</Text>
+                    <Text style={[styles.detailValue, { color: '#dc2626' }]}>Recipient not available</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: '#dc2626' }]}>Date:</Text>
+                    <Text style={[styles.detailValue, { color: '#dc2626' }]}>{selectedDelivery.date} at {selectedDelivery.time}</Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      )}
+      
       {activeTab !== 'delivery-detail' && activeTab !== 'history' && (
         <View style={[styles.tabBar, { backgroundColor: currentTheme.tabBar }]}>
         <TouchableOpacity 
@@ -695,7 +865,8 @@ const styles = StyleSheet.create({
     marginVertical: 3,
     padding: 12,
     borderRadius: 8,
-    borderWidth: 0.5,
+    borderWidth: 0.2,
+    borderColor: '#e5e7eb',
   },
   cardTitle: {
     fontSize: 16,
@@ -1103,5 +1274,79 @@ const styles = StyleSheet.create({
   mockImageSubtext: {
     fontSize: 12,
     fontWeight: '400',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  podSection: {
+    marginBottom: 12,
+  },
+  podPhotoContainer: {
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  podPhotoText: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  podPhotoSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  testNotificationButton: {
+    position: 'absolute',
+    top: 100,
+    right: 20,
+    backgroundColor: '#F35C7A',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 999,
+  },
+  testNotificationText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
